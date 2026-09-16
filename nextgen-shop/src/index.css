@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* ---------------------------------------------------------------
+   * NEXTGEN SHOP premium brand tokens
+   * Primary = Blue. Secondary = White / Dark Navy. Accent = Orange
+   * (used sparingly: key CTAs, discounts, offers, highlights).
+   *
+   * NOTE on `accent-*`: this scale predates the rebrand and is used
+   * across existing components. It now holds the PRIMARY BLUE values
+   * so legacy classes convert automatically. New code should prefer
+   * `primary-*` (same blues, semantic name). `promo-*` is the
+   * controlled orange accent. `navy-*` is the dark brand surface.
+   * ------------------------------------------------------------- */
+
+  /* Primary blue (also aliased as accent for legacy classes) */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  --color-accent-50: #eff6ff;
+  --color-accent-100: #dbeafe;
+  --color-accent-200: #bfdbfe;
+  --color-accent-300: #93c5fd;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+  --color-accent-800: #1e40af;
+  --color-accent-900: #1e3a8a;
+  --color-accent-950: #172554;
+
+  /* Promo orange — sparingly: key CTAs, discounts, offers */
+  --color-promo-50: #fff7ed;
+  --color-promo-100: #ffedd5;
+  --color-promo-200: #fed7aa;
+  --color-promo-300: #fdba74;
+  --color-promo-400: #fb923c;
+  --color-promo-500: #f97316;
+  --color-promo-600: #ea580c;
+  --color-promo-700: #c2410c;
+  --color-promo-800: #9a3412;
+  --color-promo-900: #7c2d12;
+
+  /* Dark navy brand surface + text */
+  --color-navy-50: #f3f6fa;
+  --color-navy-100: #e1e8f1;
+  --color-navy-200: #c4d2e2;
+  --color-navy-300: #9db1c9;
+  --color-navy-400: #6b84a3;
+  --color-navy-500: #3d587e;
+  --color-navy-600: #2c4468;
+  --color-navy-700: #1f3354;
+  --color-navy-800: #16263f;
+  --color-navy-900: #0f1e33;
+  --color-navy-950: #0a1424;
+
+  --shadow-card: 0 1px 2px rgb(15 30 51 / 0.05), 0 10px 30px -18px rgb(15 30 51 / 0.22);
+  --shadow-card-hover: 0 2px 4px rgb(15 30 51 / 0.06), 0 18px 40px -16px rgb(15 30 51 / 0.28);
+  --shadow-pop: 0 12px 32px -12px rgb(15 30 51 / 0.35);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white font-sans text-neutral-700 antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-navy-900;
+  }
+
+  ::selection {
+    @apply bg-primary-200 text-navy-900;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-600;
+  }
+}
+
+@utility container-shop {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+/* Reusable premium section heading eyebrow (replaces ad-hoc spans) */
+@utility eyebrow {
+  @apply text-xs font-bold uppercase tracking-widest text-primary-700;
+}
+
+/* Premium card surface */
+@utility card-premium {
+  @apply bg-white rounded-2xl border border-neutral-200/80 shadow-card;
+}

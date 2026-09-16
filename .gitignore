@@ -1,0 +1,4 @@
+# Root ignores for the workspace (app-level ignores live in nextgen-shop/.gitignore).
+supabase/.temp/
+.DS_Store
+Thumbs.db

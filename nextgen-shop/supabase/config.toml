@@ -1,0 +1,14 @@
+# Supabase project configuration — minimal: Edge Function JWT enforcement.
+#
+# verify_jwt = true is the platform default, but it is declared explicitly
+# here so the requirement cannot be silently relaxed later. Platform-level
+# verification rejects token-less callers before function code runs; the
+# functions additionally validate the JWT server-side via getUser() and
+# enforce role/ownership themselves, so authorization never depends on
+# this flag alone.
+
+[functions.cloudinary-sign]
+verify_jwt = true
+
+[functions.cloudinary-delete]
+verify_jwt = true
