@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import {
   Truck,
   Shield,
@@ -151,6 +151,14 @@ export const CheckoutPage: React.FC = () => {
       <h1 className="text-3xl sm:text-4xl font-display font-bold text-neutral-900 mb-8">
         Checkout
       </h1>
+
+      <p className="text-sm text-neutral-500 mb-6">
+        Guest checkout — your order is saved on this device only. Signed in?{' '}
+        <Link to="/checkout/real" className="font-semibold text-primary-700 hover:underline">
+          Use secure checkout
+        </Link>{' '}
+        instead.
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Form */}

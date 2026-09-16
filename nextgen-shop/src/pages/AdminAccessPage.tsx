@@ -94,6 +94,7 @@ export const AdminAccessPage: React.FC = () => {
   const [permTarget, setPermTarget] = useState('')
   const [permBusy, setPermBusy] = useState(false)
   const [confirmRevokePerm, setConfirmRevokePerm] = useState(false)
+  const [confirmGrantPerm, setConfirmGrantPerm] = useState(false)
 
   function validPermTarget(): boolean {
     return UUID_RE.test(permTarget.trim())
@@ -113,6 +114,7 @@ export const AdminAccessPage: React.FC = () => {
       showNotice('err', err.message)
       return
     }
+    setConfirmGrantPerm(false)
     showNotice('ok', 'Admin permission granted. The user is now an admin.')
   }
 
@@ -340,7 +342,7 @@ export const AdminAccessPage: React.FC = () => {
             <input
               id="aa-perm-target"
               value={permTarget}
-              onChange={(e) => { setPermTarget(e.target.value); setConfirmRevokePerm(false) }}
+              onChange={(e) => { setPermTarget(e.target.value); setConfirmRevokePerm(false); setConfirmGrantPerm(false) }}
               placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
               autoComplete="off"
               spellCheck={false}
@@ -348,6 +350,22 @@ export const AdminAccessPage: React.FC = () => {
             />
           </div>
         </div>
+        {confirmGrantPerm ? (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 mt-4 space-y-3">
+            <p className="text-sm text-amber-900">
+              Grant admin permission to <span className="font-mono font-semibold">{permTarget.trim()}</span>?
+              They will gain full administrator access.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <Button type="button" variant="secondary" size="md" className="flex-1" disabled={permBusy} onClick={() => void handleGrantAdmin()}>
+                {permBusy ? 'Granting…' : 'Confirm Grant'}
+              </Button>
+              <Button type="button" variant="outline" size="md" disabled={permBusy} onClick={() => setConfirmGrantPerm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {confirmRevokePerm ? (
           <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 mt-4 space-y-3">
             <p className="text-sm text-amber-900">
@@ -365,9 +383,9 @@ export const AdminAccessPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row gap-2.5 mt-4">
-            <Button type="button" variant="secondary" size="md" className="flex-1" disabled={permBusy} onClick={() => void handleGrantAdmin()}>
+            <Button type="button" variant="secondary" size="md" className="flex-1" disabled={permBusy} onClick={() => setConfirmGrantPerm(true)}>
               <ShieldCheck className="h-4 w-4" />
-              {permBusy ? 'Working…' : 'Grant Admin'}
+              Grant Admin
             </Button>
             <Button type="button" variant="outline" size="md" className="flex-1" disabled={permBusy} onClick={() => setConfirmRevokePerm(true)}>
               <Ban className="h-4 w-4" />

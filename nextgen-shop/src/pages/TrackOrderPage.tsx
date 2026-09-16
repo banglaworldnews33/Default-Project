@@ -74,6 +74,14 @@ export const TrackOrderPage: React.FC = () => {
         Track Order
       </h1>
 
+      <p className="text-sm text-neutral-500 mb-6">
+        Guest tracking for orders placed without signing in. Ordered while signed in?{' '}
+        <Link to="/orders" className="font-semibold text-primary-700 hover:underline">
+          View your orders
+        </Link>
+        .
+      </p>
+
       {/* Search form */}
       <form onSubmit={handleSearch} className="bg-white rounded-xl border border-neutral-200/80 p-6 mb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">

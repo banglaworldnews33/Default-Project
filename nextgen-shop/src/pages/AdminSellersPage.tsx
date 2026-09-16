@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Search, Check, X, Clock } from 'lucide-react'
 import { sellerService } from '@/services/seller'
@@ -25,6 +25,7 @@ export const AdminSellersPage: React.FC = () => {
   const [confirming, setConfirming] = useState<'approve' | 'reject' | null>(null)
   const [acting, setActing] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const detailReq = useRef(0)
 
   useEffect(() => {
     let active = true
@@ -83,11 +84,16 @@ export const AdminSellersPage: React.FC = () => {
     setConfirming(null)
     setActionMsg(null)
     setDetailLoading(true)
+    // Guard against out-of-order responses when selections change
+    // rapidly: only the latest request may commit detail state.
+    const req = detailReq.current + 1
+    detailReq.current = req
     const app = apps.find((a) => a.id === id) ?? null
     const [profRes, auditRes] = await Promise.all([
       app ? getProfile(app.userId) : Promise.resolve({ profile: null, error: null as Error | null }),
       sellerService.listAudit(id),
     ])
+    if (detailReq.current !== req) return
     setApplicant(profRes.profile)
     setAudit(auditRes.data ?? [])
     setDetailLoading(false)

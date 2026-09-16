@@ -175,6 +175,13 @@ export const AdminCategoriesPage: React.FC = () => {
       setFormError('A category with this name already exists. Names must be unique.')
       return
     }
+    // Slug uniqueness is enforced by the database; pre-check here so a
+    // collision surfaces a friendly message instead of a raw DB error.
+    const slugTaken = categories.some((c) => c.id !== editingId && c.slug === slug)
+    if (slugTaken) {
+      setFormError('This URL slug is already taken. Edit the slug to make it unique.')
+      return
+    }
     setSaving(true)
     try {
       const payload: CategoryInput = {

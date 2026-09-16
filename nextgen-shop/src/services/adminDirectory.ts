@@ -1,6 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import type { SellerAuditEntry } from '@/types'
-import { toSellerAuditEntry } from './seller'
 import {
   asString,
   collect,
@@ -40,26 +38,5 @@ export const adminDirectoryService = {
       .limit(200)
     if (error) return { data: null, error }
     return { data: collect(data, toDirectoryEntry), error: null }
-  },
-
-  /** Audit entries by target user (product.* + seller.* actions). */
-  async listAuditByTarget(targetUserId: string): Promise<DbResult<SellerAuditEntry[]>> {
-    const missing = requireConfigured<SellerAuditEntry[]>()
-    if (missing) return missing
-    const { data, error } = await supabase
-      .from('admin_audit_log')
-      .select('*')
-      .eq('target_user_id', targetUserId)
-      .order('created_at', { ascending: false })
-      .limit(100)
-    if (error) return { data: null, error }
-    const rows: SellerAuditEntry[] = []
-    if (Array.isArray(data)) {
-      for (const row of data) {
-        const entry = toSellerAuditEntry(row)
-        if (entry) rows.push(entry)
-      }
-    }
-    return { data: rows, error: null }
   },
 }

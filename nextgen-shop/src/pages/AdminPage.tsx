@@ -317,6 +317,10 @@ const AdminOrdersPage: React.FC = () => {
   const [detailRows, setDetailRows] = React.useState<AdminOrderDetailRow[]>([])
   const [detailLoading, setDetailLoading] = React.useState(false)
   const [detailError, setDetailError] = React.useState<string | null>(null)
+  // Load-more failures must not wipe the already-loaded list: they
+  // surface inline with their own retry instead of the page error.
+  const [moreError, setMoreError] = React.useState<string | null>(null)
+  const detailReq = React.useRef(0)
 
   // Initial page load only. Authorization is server-side inside the
   // RPC (public.is_admin()); non-admin callers receive zero rows.
@@ -324,6 +328,7 @@ const AdminOrdersPage: React.FC = () => {
     let active = true
     void (async () => {
       setLoading(true)
+      setMoreError(null)
       const { data, error: err } = await adminOrdersService.listAdminOrders()
       if (!active) return
       if (err) {
@@ -347,17 +352,23 @@ const AdminOrdersPage: React.FC = () => {
     const last = rows[rows.length - 1]
     if (!last || loadingMore) return
     setLoadingMore(true)
+    setMoreError(null)
     const { data, error: err } = await adminOrdersService.listAdminOrders({
       createdBefore: last.createdAt,
       idBefore: last.orderId,
     })
     setLoadingMore(false)
     if (err) {
-      setError(err.message)
+      setMoreError(err.message)
       return
     }
     const batch = data ?? []
-    setRows((prev) => [...prev, ...batch])
+    // Deduplicate by order id: rows inserted between pages must not
+    // produce duplicate entries in the list.
+    setRows((prev) => {
+      const seen = new Set(prev.map((o) => o.orderId))
+      return [...prev, ...batch.filter((o) => !seen.has(o.orderId))]
+    })
     setHasMore(batch.length === ADMIN_ORDERS_PAGE_SIZE)
   }
 
@@ -372,7 +383,12 @@ const AdminOrdersPage: React.FC = () => {
     setDetailRows([])
     setDetailError(null)
     setDetailLoading(true)
+    // Guard against out-of-order responses when orders are toggled
+    // rapidly: only the latest request may commit detail state.
+    const req = detailReq.current + 1
+    detailReq.current = req
     const { data, error: err } = await adminOrdersService.getAdminOrderDetail(orderId)
+    if (detailReq.current !== req) return
     setDetailLoading(false)
     if (err) {
       setDetailError(err.message)
@@ -448,6 +464,15 @@ const AdminOrdersPage: React.FC = () => {
           {rows.length === 0 && (
             <div className="p-12 text-center text-sm text-neutral-500">No real orders yet.</div>
           )}
+        </div>
+      )}
+
+      {!loading && !error && moreError && (
+        <div className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="flex-1">{moreError}</span>
+          <Button size="sm" variant="outline" disabled={loadingMore} onClick={() => void loadMore()}>
+            <span>Retry</span>
+          </Button>
         </div>
       )}
 
@@ -593,7 +618,9 @@ category: category as CategorySlug,
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-neutral-900">Products ({products.length})</h3>
+        <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
+          Products ({products.length}) <Badge variant="muted">Demo data</Badge>
+        </h3>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4" />
           <span>{showForm ? 'Cancel' : 'Add Product'}</span>
@@ -673,7 +700,10 @@ const AdminCustomersPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-neutral-900">Customers ({customers.length})</h3>
+      <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
+        Customers ({customers.length}) <Badge variant="muted">Demo data</Badge>
+      </h3>
+      <p className="text-xs text-neutral-500">Local demo storefront records — not live buyer data. Live order contact details appear only in the Orders tab.</p>
       <div className="bg-white rounded-xl border border-neutral-200/80 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -710,7 +740,9 @@ const AdminStockPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-neutral-900">Stock Inventory ({products.length})</h3>
+      <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
+        Stock Inventory ({products.length}) <Badge variant="muted">Demo data</Badge>
+      </h3>
       <div className="bg-white rounded-xl border border-neutral-200/80 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -765,7 +797,10 @@ const AdminReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-neutral-900">Reports</h3>
+      <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
+        Reports <Badge variant="muted">Demo data</Badge>
+      </h3>
+      <p className="text-xs text-neutral-500">Figures below come from the local demo storefront, not live marketplace sales. Live financials are in the Finance tab.</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-neutral-200/80 p-5">
           <p className="text-2xl font-bold text-neutral-900">{orders.length}</p>
@@ -809,7 +844,7 @@ const AdminWithdrawalsPage: React.FC = () => {
   const [actionMsg, setActionMsg] = React.useState<string | null>(null)
   const [reason, setReason] = React.useState('')
   const [reference, setReference] = React.useState('')
-  const [confirmAction, setConfirmAction] = React.useState<'reject' | 'complete' | 'fail' | null>(null)
+  const [confirmAction, setConfirmAction] = React.useState<'approve' | 'start' | 'reject' | 'complete' | 'fail' | null>(null)
 
   const loadFirst = React.useCallback(async (): Promise<void> => {
     setLoading(true)
@@ -867,7 +902,7 @@ const AdminWithdrawalsPage: React.FC = () => {
     setReloadKey((k) => k + 1)
   }
 
-  function openConfirm(kind: 'reject' | 'complete' | 'fail'): void {
+  function openConfirm(kind: 'approve' | 'start' | 'reject' | 'complete' | 'fail'): void {
     setActionMsg(null)
     setConfirmAction(kind)
   }
@@ -967,15 +1002,44 @@ const AdminWithdrawalsPage: React.FC = () => {
 
                     {row.status === 'pending' && (
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => void runAction('approve', row)}
-                        >
-                          {busy ? 'Working…' : 'Approve'}
-                        </Button>
+                        {confirmAction !== 'approve' ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => openConfirm('approve')}
+                          >
+                            Approve
+                          </Button>
+                        ) : (
+                          <div className="space-y-2 w-full">
+                            <p className="text-xs text-neutral-600">
+                              Approve the {formatBDT(row.amount)} payout to {row.shopName ?? 'Seller'}?
+                              Approval reserves the funds and cannot be undone from here.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="primary"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => void runAction('approve', row)}
+                              >
+                                {busy ? 'Approving…' : 'Confirm approval'}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => setConfirmAction(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         {confirmAction !== 'reject' ? (
                           <Button
                             type="button"
@@ -1022,15 +1086,43 @@ const AdminWithdrawalsPage: React.FC = () => {
 
                     {row.status === 'approved' && (
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => void runAction('start', row)}
-                        >
-                          {busy ? 'Working…' : 'Start processing'}
-                        </Button>
+                        {confirmAction !== 'start' ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => openConfirm('start')}
+                          >
+                            Start processing
+                          </Button>
+                        ) : (
+                          <div className="space-y-2 w-full">
+                            <p className="text-xs text-neutral-600">
+                              Start processing the {formatBDT(row.amount)} payout? This moves it forward and cannot be undone from here.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="primary"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => void runAction('start', row)}
+                              >
+                                {busy ? 'Starting…' : 'Confirm start'}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => setConfirmAction(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1192,7 +1284,7 @@ const AdminRefundsPage: React.FC = () => {
   const [busy, setBusy] = React.useState(false)
   const [actionMsg, setActionMsg] = React.useState<string | null>(null)
   const [reason, setReason] = React.useState('')
-  const [confirmAction, setConfirmAction] = React.useState<'reject' | 'process' | null>(null)
+  const [confirmAction, setConfirmAction] = React.useState<'approve' | 'reject' | 'process' | null>(null)
 
   const [itemId, setItemId] = React.useState('')
   const [refundAmount, setRefundAmount] = React.useState('')
@@ -1338,7 +1430,7 @@ const AdminRefundsPage: React.FC = () => {
     setAdjMsg('Correction recorded as an immutable compensating entry.')
   }
 
-  function openConfirm(kind: 'reject' | 'process'): void {
+  function openConfirm(kind: 'approve' | 'reject' | 'process'): void {
     setActionMsg(null)
     setConfirmAction(kind)
   }
@@ -1482,15 +1574,43 @@ const AdminRefundsPage: React.FC = () => {
 
                     {row.status === 'pending' && (
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => void runAction('approve', row)}
-                        >
-                          {busy ? 'Working…' : 'Approve'}
-                        </Button>
+                        {confirmAction !== 'approve' ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => openConfirm('approve')}
+                          >
+                            Approve
+                          </Button>
+                        ) : (
+                          <div className="space-y-2 w-full">
+                            <p className="text-xs text-neutral-600">
+                              Approve the {formatBDT(row.requestedNetAmount)} refund? Approval moves it toward a ledger write and cannot be undone from here.
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="primary"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => void runAction('approve', row)}
+                              >
+                                {busy ? 'Approving…' : 'Confirm approval'}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={busy}
+                                onClick={() => setConfirmAction(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         {confirmAction !== 'reject' ? (
                           <Button
                             type="button"

@@ -42,6 +42,7 @@ export const SellerShopPage: React.FC = () => {
   const [bannerUrl, setBannerUrl] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [brandingMsg, setBrandingMsg] = useState<string | null>(null)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   /** Replace branding: upload → persist new pointers → clean up the old asset. */
@@ -101,12 +102,26 @@ export const SellerShopPage: React.FC = () => {
     setLogoUrl('')
     setBannerUrl('')
     setFormError(null)
+    setSaveMsg(null)
     setEditing(true)
+  }
+
+  /** Exit edit mode restoring the last loaded values. */
+  function cancelEdit(): void {
+    if (shop) {
+      setShopName(shop.shopName)
+      setDescription(shop.description ?? '')
+      setLogoUrl(shop.logoUrl ?? '')
+      setBannerUrl(shop.bannerUrl ?? '')
+    }
+    setFormError(null)
+    setEditing(false)
   }
 
   async function handleSave(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     setFormError(null)
+    setSaveMsg(null)
     const name = shopName.trim()
     if (name.length < 3 || name.length > 200) {
       setFormError('Shop name must be 3–200 characters.')
@@ -150,6 +165,7 @@ export const SellerShopPage: React.FC = () => {
         }
       }
       setEditing(false)
+      setSaveMsg(shop ? 'Shop details saved.' : 'Shop created.')
       setLoading(true)
       setReloadKey((k) => k + 1)
     } finally {
@@ -167,6 +183,9 @@ export const SellerShopPage: React.FC = () => {
       {loading && <LoadingState message="Loading your shop…" />}
       {!loading && error && (
         <ErrorState message={error} onRetry={() => { setLoading(true); setReloadKey((k) => k + 1) }} />
+      )}
+      {!loading && !error && saveMsg && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3">{saveMsg}</div>
       )}
 
       {!loading && !error && !shop && !editing && (
@@ -207,7 +226,7 @@ export const SellerShopPage: React.FC = () => {
               {shop?.description && (
                 <p className="text-sm text-neutral-600 leading-relaxed">{shop.description}</p>
               )}
-              <Button type="button" variant="outline" size="md" onClick={() => setEditing(true)}>
+              <Button type="button" variant="outline" size="md" onClick={() => { setSaveMsg(null); setEditing(true) }}>
                 Edit Shop Details
               </Button>
             </div>
@@ -290,7 +309,7 @@ export const SellerShopPage: React.FC = () => {
                   {saving ? 'Saving…' : shop ? 'Save Changes' : 'Create Shop'}
                 </Button>
                 {shop && (
-                  <Button type="button" variant="outline" size="md" disabled={saving} onClick={() => setEditing(false)}>
+                  <Button type="button" variant="outline" size="md" disabled={saving} onClick={cancelEdit}>
                     Cancel
                   </Button>
                 )}

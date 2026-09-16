@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search, Check, X, Plus, Pencil, Power, EyeOff, Eye } from 'lucide-react'
 import { sellerProductsService } from '@/services/sellerProducts'
@@ -68,6 +68,7 @@ export const AdminProductsPage: React.FC = () => {
   const [confirming, setConfirming] = useState<'approve' | 'reject' | null>(null)
   const [acting, setActing] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const detailReq = useRef(0)
 
   const load = useCallback(async () => {
     const [pRes, cRes, sRes] = await Promise.all([
@@ -137,6 +138,10 @@ export const AdminProductsPage: React.FC = () => {
     setConfirming(null)
     setActionMsg(null)
     setDetailLoading(true)
+    // Guard against out-of-order responses when selections change
+    // rapidly: only the latest request may commit detail state.
+    const req = detailReq.current + 1
+    detailReq.current = req
     // Admin-owned products are shopless (shop_id NULL) — skip shop fetch.
     // Product audit comes from the migration-010 RPCs (redacted for
     // normal admins, full actor identity only when the database
@@ -147,6 +152,7 @@ export const AdminProductsPage: React.FC = () => {
       sellerProductsService.listVariants(p.id),
       getProductAudit(p.id),
     ])
+    if (detailReq.current !== req) return
     setShop(sRes.data)
     setImages(iRes.data ?? [])
     setVariants(vRes.data ?? [])
@@ -219,7 +225,7 @@ export const AdminProductsPage: React.FC = () => {
       setActionMsg(err.message)
       return
     }
-    setSelected({ ...p, hiddenByAdmin: true, hiddenAt: new Date().toISOString() })
+    setSelected({ ...p, hiddenByAdmin: true })
     setLoading(true)
     setReloadKey((k) => k + 1)
   }
